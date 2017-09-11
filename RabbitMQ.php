@@ -1,42 +1,53 @@
 <?php
-require_once __DIR__ . '/vendor/autoload.php';
-use PhpAmqpLib\Connection\AMQPStreamConnection;
-use PhpAmqpLib\Message\AMQPMessage;
 
 class RabbitMQ
 {
-    private static $pool = null;
+    private static $_pool = null;
+    private static $_connection = null;
 
     public static function getConnection()
-    {
-        $connection = new AMQPConnection();
-        $connection->setHost('127.0.0.1');
-        $connection->setLogin('guest');
-        $connection->setPassword('guest');
-        $connection->connect();
-        $channel = new AMQPChannel($connection);
-        $exchange = new AMQPExchange($channel);
-        $queue = new AMQPQueue($channel);
-        return $exchange;
-        // return '这是一个rabbitmq的连接';
-    }
-
-    function __construct()
-    {
-        $connection = new AMQPStreamConnection('localhost', 5672, 'guest', 'guest');
-        $channel = $connection->channel();
-        $channel->queue_declare('libpool', false, false, false, false);
-        self::$pool = $channel;
-    }
-
-    public static function getAMQPLibConnection()
     {
         return new RabbitMQ();
     }
 
-    public function push($massage)
+	public function  __construct()
+	{
+        // self::$_connection = $connection = new AMQPConnection();
+        // $connection->setHost('127.0.0.1');
+        // $connection->setLogin('root');
+        // $connection->setPassword('root');
+        // $connection->connect();
+        // $channel = new AMQPChannel($connection);
+        // $exchange = new AMQPExchange($channel);
+        // $exchange->setName("exchangeD");
+        // $exchange->setType(AMQP_EX_TYPE_DIRECT);
+        // $exchange->setFlags(AMQP_DURABLE);
+        // $exchange->declareExchange();
+        // $queue = new AMQPQueue($channel);
+        // $queue->setName('test');
+        // $queue->setFlags(AMQP_DURABLE);
+        // $queue->bind($exchange->getName(), 'test');
+        // $queue->declareQueue();
+		// self::$_pool = $exchange;
+        self::$_connection = $connection = new AMQPConnection();
+        $connection->setHost('127.0.0.1');
+        $connection->setLogin('root');
+        $connection->setPassword('root');
+        $connection->connect();
+        $channel = new AMQPChannel($connection);
+        $exchange = new AMQPExchange($channel);
+        $queue = new AMQPQueue($channel);
+        self::$_pool = $exchange;
+	}
+
+    public function push($message, $queue)
     {
-        $msg = new AMQPMessage($massage);
-        return self::$pool->basic_publish($msg, '', 'libpool');
+        // return self::$_pool->publish($message, $queue, $flags = AMQP_NOPARAM, [ 'delivery_mode'=> 2 ]);
+        return self::$_pool->publish($message, $queue);
     }
+
+	public function close()
+	{
+		return self::$_connection->disconnect();
+	}
 }
