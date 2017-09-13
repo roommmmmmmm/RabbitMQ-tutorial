@@ -7,14 +7,15 @@ class HttpServer
     private $_cn = array();
 	private $_process = null;
 	private $_confmtime = null; // 这是用来检查配置文件是否进行了更改
-	private $_count = 0;
+
+    private $_app;
 
 	public function __construct($address = '127.0.0.1', $port = 80)
 	{
         $this->_serv = new swoole_http_server($address, $port);
         $this->_serv->set(
             [
-                'worker_num' => 6,
+                'worker_num' => 4,
                 'log_file'   => '/tmp/swoole_dbpool.log',
 				'max_request' => 20000,
 				//'daemonize' => 1
@@ -42,15 +43,15 @@ class HttpServer
 			clearstatcache(true, 'application.ini');
 			$fmtime = filemtime('application.ini');
 			if (empty($this->_confmtime)) {
-				echo '第一次载入配置文件', PHP_EOL;
+				// echo '第一次载入配置文件', PHP_EOL;
 				$this->_confmtime = $fmtime;
 			}
 			if ($fmtime != $this->_confmtime) {
-				echo '配置文件发生了更改,更改时间为:', date('Y-m-d H:i:s', $fmtime), PHP_EOL;
+				// echo '配置文件发生了更改,更改时间为:', date('Y-m-d H:i:s', $fmtime), PHP_EOL;
 				$this->_confmtime = $fmtime;
 				$this->_serv->reload();
 			} else {
-				echo 'Nothing happened current memory use :', memory_get_usage(true) / 1024 / 1024, ' MB' , PHP_EOL;
+				// echo 'Nothing happened current memory use :', memory_get_usage(true) / 1024 / 1024, ' MB' , PHP_EOL;
 			}
 		//	var_dump(date('Y-m-d H:i:s', $fmtime));
 		//	var_dump('------------------'. $this->_count++);
@@ -60,13 +61,16 @@ class HttpServer
 
     public function onWorkerStart($serv, $id)
     {
-		//echo '加载配置文件', PHP_EOL;
-	//	$ini = new Ini('application.ini');
-	//	if (!empty($conf = $ini->toArray())) {
-	//		echo $conf['core']['rabbit']['host'], PHP_EOL;
-	//	}
 		include 'RabbitMQ.php';
-        $this->_cn['pool'] = RabbitMQ::getConnection();
+        // $this->_cn['pool'] = RabbitMQ::getConnection();
+        // 注册连接池
+        \Yaf\Registry::set('pool', RabbitMQ::getConnection());
+
+        define('APPLICATION_PATH', __DIR__);
+		$this->_app = new \Yaf\Application( APPLICATION_PATH . "/conf/application.ini");
+		// ob_start();
+		$this->_app->bootstrap();
+		// ob_end_clean();
     }
 
     public function onWorkerStop($serv, $work_id)
@@ -77,15 +81,31 @@ class HttpServer
 
     public function onRequest($request, $response)
     {
-		$message = '1123124324324';
-		//$message = $request->get['msg'];
-        $res = $this->_cn['pool']->push($message, 'pool');
-        // $res = $this->_cn['pool']->publish($message, 'test');
-        if ($res){
-            $response->end("<h1>success!</h1>");
-        } else {
-            $response->end("<h1>fail!</h1>");
+        // ob_start();
+        try {
+            \Yaf\Registry::set('response', $response);
+
+            $yaf_request = new \Yaf\Request\Http($request->server['request_uri']);
+            $yaf_request->setParam('method','POST');
+            var_dump($yaf_request);
+            $this->_app->getDispatcher()->dispatch($yaf_request);
+        } catch ( \Yaf\Exception $e ) {
+            var_dump( $e );
         }
+
+        // $result = ob_get_contents();
+        // ob_end_clean();
+        // var_dump($result);
+
+		// $message = '1123124324324';
+		// //$message = $request->get['msg'];
+        // $res = $this->_cn['pool']->push($message, 'pool');
+        // // $res = $this->_cn['pool']->publish($message, 'test');
+        // if ($res){
+        //     $response->end("<h1>success!</h1>");
+        // } else {
+        //     $response->end("<h1>fail!</h1>");
+        // }
     }
 }
 //$server = new HttpServer('0.0.0.0', 2333);
