@@ -16,12 +16,21 @@ class IndexController extends \Yaf\Controller_Abstract {
 		//1. fetch query
 		// $get = $this->getRequest()->getQuery("get", "default value");
 		var_dump($this->getRequest());
-		// $response = \Yaf\Registry::get('response');
+		 $response = \Yaf\Registry::get('response');
 		// $isSuc = $pool->push('12312324', 'pool');
 		// var_dump($isSuc);
-		// $response->end('this is index');
+		 //$response->end('this is index');
+		 $response->end('this is modify index');
 
 		return FALSE;
 		//4. render by Yaf, 如果这里返回FALSE, Yaf将不会调用自动视图引擎Render模板
+	}
+
+	public function getAction() 
+	{
+		$response = \Yaf\Registry::get('response');
+		$response->end('this is get method');
+
+		return FALSE;
 	}
 }

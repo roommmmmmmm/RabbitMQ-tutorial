@@ -61,35 +61,37 @@ class HttpServer
 
     public function onWorkerStart($serv, $id)
     {
-		//include 'RabbitMQ.php';
-        // $this->_cn['pool'] = RabbitMQ::getConnection();
-        // 注册连接池
-        //\Yaf\Registry::set('pool', RabbitMQ::getConnection());
-
-        define('APPLICATION_PATH', __DIR__);
-		$this->_app = new \Yaf\Application( APPLICATION_PATH . "/conf/application.ini");
-		// ob_start();
-		$this->_app->bootstrap();
-		// ob_end_clean();
+		opcache_reset();
+		include 'dispatch.php';
+		$this->_app = Dispatch::getInstance();
     }
 
     public function onWorkerStop($serv, $work_id)
     {
-        $this->_cn['pool']->close();
-		//var_dump('请求到了以后我把链接给关了重新fork了进程');
+        //$this->_cn['pool']->close();
+		$this->_app = null;
+		var_dump('进程被重新启动了');
     }
 
     public function onRequest($request, $response)
     {
+			if ($this->_app) {
+				$this->_app->route($request, $response);
+			
+			} else {
+				$reponse->status(500);
+             	$response->end("Error");
+			}
         // ob_start();
-        try {
-            \Yaf\Registry::set('response', $response);
+       // try {
+       //     \Yaf\Registry::set('response', $response);
 
-			$yaf_request = new \Yaf\Request\Simple('GET', 'Index', 'Index', 'Index');
-			$this->_app->getDispatcher()->dispatch($yaf_request);
-        } catch ( \Yaf\Exception $e ) {
-            var_dump( $e );
-        }
+       //     $yaf_request = new \Yaf\Request\Http($request->server['request_uri']);
+       //     //var_dump($yaf_request);
+       //     $this->_app->getDispatcher()->dispatch($yaf_request);
+       // } catch ( \Yaf\Exception $e ) {
+       //     var_dump( $e );
+       // }
 
         // $result = ob_get_contents();
         // ob_end_clean();
@@ -106,5 +108,5 @@ class HttpServer
         // }
     }
 }
-//$server = new HttpServer('0.0.0.0', 2333);
-//$server->run();
+$server = new HttpServer('0.0.0.0', 2333);
+$server->run();
