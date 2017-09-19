@@ -37,61 +37,79 @@ class HttpServer
 
 	public function autoLoadConfig()
 	{
-		swoole_timer_tick(2000, function() {
-		//	clearstatcache(true, 'config.php');
-		//	$fmtime = filemtime('config.php');
-			clearstatcache(true, 'application.ini');
-			$fmtime = filemtime('application.ini');
-			if (empty($this->_confmtime)) {
-				// echo '第一次载入配置文件', PHP_EOL;
-				$this->_confmtime = $fmtime;
-			}
-			if ($fmtime != $this->_confmtime) {
-				// echo '配置文件发生了更改,更改时间为:', date('Y-m-d H:i:s', $fmtime), PHP_EOL;
-				$this->_confmtime = $fmtime;
-				$this->_serv->reload();
-			} else {
-				// echo 'Nothing happened current memory use :', memory_get_usage(true) / 1024 / 1024, ' MB' , PHP_EOL;
-			}
-		//	var_dump(date('Y-m-d H:i:s', $fmtime));
-		//	var_dump('------------------'. $this->_count++);
-		});
+        //创建一个inotify句柄
+        $fd = inotify_init();
+
+        //监听文件，仅监听修改操作，如果想要监听所有事件可以使用IN_ALL_EVENTS
+        $watch_descriptor = inotify_add_watch($fd, __DIR__, IN_MODIFY);
+
+        //加入到swoole的事件循环中
+        swoole_event_add($fd, function ($fd) {
+            $events = inotify_read($fd);
+            if ($events) {
+                foreach ($events as $event) {
+                    echo "项目文件", $event['name'] ,"发生了变化，重新启动", PHP_EOL;
+                    $this->_serv->reload();
+                    // echo "inotify Event :" . var_export($event, 1) . "\n";
+                }
+            }
+        });
+		// swoole_timer_tick(2000, function() {
+		// //	clearstatcache(true, 'config.php');
+		// //	$fmtime = filemtime('config.php');
+		// 	clearstatcache(true, 'application.ini');
+		// 	$fmtime = filemtime('application.ini');
+		// 	if (empty($this->_confmtime)) {
+		// 		echo '第一次载入配置文件', PHP_EOL;
+		// 		$this->_confmtime = $fmtime;
+		// 	}
+		// 	if ($fmtime != $this->_confmtime) {
+		// 		echo '配置文件发生了更改,更改时间为:', date('Y-m-d H:i:s', $fmtime), PHP_EOL;
+		// 		$this->_confmtime = $fmtime;
+		// 		$this->_serv->reload();
+		// 	} else {
+		// 		echo 'Nothing happened current memory use :', memory_get_usage(true) / 1024 / 1024, ' MB' , PHP_EOL;
+		// 	}
+		// //	var_dump(date('Y-m-d H:i:s', $fmtime));
+		// //	var_dump('------------------'. $this->_count++);
+		// });
 	}
 
 
     public function onWorkerStart($serv, $id)
     {
-		include 'RabbitMQ.php';
-        // $this->_cn['pool'] = RabbitMQ::getConnection();
-        // 注册连接池
-        \Yaf\Registry::set('pool', RabbitMQ::getConnection());
-
-        define('APPLICATION_PATH', __DIR__);
-		$this->_app = new \Yaf\Application( APPLICATION_PATH . "/conf/application.ini");
-		// ob_start();
-		$this->_app->bootstrap();
+		// include 'RabbitMQ.php';
+        // // $this->_cn['pool'] = RabbitMQ::getConnection();
+        // // 注册连接池
+        // \Yaf\Registry::set('pool', RabbitMQ::getConnection());
+        //
+        // define('APPLICATION_PATH', __DIR__);
+		// $this->_app = new \Yaf\Application( APPLICATION_PATH . "/conf/application.ini");
+		// // ob_start();
+		// $this->_app->bootstrap();
 		// ob_end_clean();
     }
 
     public function onWorkerStop($serv, $work_id)
     {
-        $this->_cn['pool']->close();
+        // $this->_cn['pool']->close();
+        echo "项目文件发生了变化，重新启动", PHP_EOL;
 		//var_dump('请求到了以后我把链接给关了重新fork了进程');
     }
 
     public function onRequest($request, $response)
     {
         // ob_start();
-        try {
-            \Yaf\Registry::set('response', $response);
-
-            $yaf_request = new \Yaf\Request\Http($request->server['request_uri']);
-            $yaf_request->setParam('method','POST');
-            var_dump($yaf_request);
-            $this->_app->getDispatcher()->dispatch($yaf_request);
-        } catch ( \Yaf\Exception $e ) {
-            var_dump( $e );
-        }
+        // try {
+        //     \Yaf\Registry::set('response', $response);
+        //
+        //     $yaf_request = new \Yaf\Request\Http($request->server['request_uri']);
+        //     $yaf_request->setParam('method','POST');
+        //     var_dump($yaf_request);
+        //     $this->_app->getDispatcher()->dispatch($yaf_request);
+        // } catch ( \Yaf\Exception $e ) {
+        //     var_dump( $e );
+        // }
 
         // $result = ob_get_contents();
         // ob_end_clean();

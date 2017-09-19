@@ -34,8 +34,8 @@ class HttpServer
 
     public function onRequest($request, $response)
     {
-		$message = '1123124324324'; 
-		//$message = $request->get['msg']; 
+		$message = '1123124324324';
+		//$message = $request->get['msg'];
         $res = $this->_cn['pool']->push($message, 'pool');
         // $res = $this->_cn['pool']->publish($message, 'test');
         if ($res){
