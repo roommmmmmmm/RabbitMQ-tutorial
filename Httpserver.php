@@ -78,16 +78,7 @@ class HttpServer
 
     public function onWorkerStart($serv, $id)
     {
-		// include 'RabbitMQ.php';
-        // // $this->_cn['pool'] = RabbitMQ::getConnection();
-        // // 注册连接池
-        // \Yaf\Registry::set('pool', RabbitMQ::getConnection());
-        //
-        // define('APPLICATION_PATH', __DIR__);
-		// $this->_app = new \Yaf\Application( APPLICATION_PATH . "/conf/application.ini");
-		// // ob_start();
-		// $this->_app->bootstrap();
-		// ob_end_clean();
+
     }
 
     public function onWorkerStop($serv, $work_id)
@@ -100,16 +91,6 @@ class HttpServer
     public function onRequest($request, $response)
     {
         // ob_start();
-        // try {
-        //     \Yaf\Registry::set('response', $response);
-        //
-        //     $yaf_request = new \Yaf\Request\Http($request->server['request_uri']);
-        //     $yaf_request->setParam('method','POST');
-        //     var_dump($yaf_request);
-        //     $this->_app->getDispatcher()->dispatch($yaf_request);
-        // } catch ( \Yaf\Exception $e ) {
-        //     var_dump( $e );
-        // }
 
         // $result = ob_get_contents();
         // ob_end_clean();
